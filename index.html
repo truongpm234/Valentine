@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Happy Valentine</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #020308;
+      overflow: hidden; 
+      touch-action: none; 
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .hint {
+      position: fixed;
+      left: 50%; 
+      transform: translateX(-50%);
+      bottom: 20px;
+      padding: 8px 12px;
+      font: 12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: rgba(255,255,255,0.8);
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+      pointer-events: none;
+      user-select: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .hint b { color: rgba(255,160,210,1); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="hint">Chạm hoặc nhấn <b>Space</b> để phát lại</div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d', { alpha: true, desynchronized: false });
+
+      const TAU = Math.PI * 2;
+      const PHRASE = 'I love you';
+
+      let W = 0, H = 0, DPR = 1;
+      let system = null;
+
+      const TUNE = {
+        STAR_DENSITY_DIV: 1500, 
+        STAR_MIN: 800,  
+        STAR_MAX: 2500,
+
+        SOLAR_MARGIN: 0.92, 
+        SOLAR_XS: 1.1,      
+        SOLAR_YS: 0.8, 
+        SOLAR_TILT: -0.25, 
+        SUN_SCALE: 1.1, 
+
+        HEART_SCALE: 0.016, 
+        
+        TEXT_SCALE_ONE_LINE: 0.24, 
+        TEXT_SCALE_TWO_LINE: 0.20 
+      };
+
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const easeInOutCubic = (t) => (t < 0.5) ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+      const hueLerp = (h1, h2, t) => {
+        const d = ((h2 - h1 + 540) % 360) - 180;
+        return (h1 + d * t + 360) % 360;
+      };
+
+      const rnd = (min, max) => Math.random() * (max - min) + min;
+      const randomGaussian = () => (Math.random() + Math.random() + Math.random() + Math.random() - 2.0) / 2.0;
+
+      const shuffle = (arr) => {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = (Math.random() * (i + 1)) | 0;
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      };
+
+      class Particle {
+        constructor(x, y) {
+          this.x = x; this.y = y;
+          this.vx = rnd(-0.02, 0.02);
+          this.vy = rnd(-0.02, 0.02);
+
+          this.h = rnd(180, 320);
+          this.s = rnd(70, 100);
+          this.l = rnd(55, 75);
+          this.a = rnd(0.35, 0.9);
+          this.r = rnd(0.5, 1.3);
+
+          this.phase = rnd(0, TAU);
+          this.jx = rnd(-1, 1);
+          this.jy = rnd(-1, 1);
+        }
+
+        step(target, dt) {
+          const k = 0.06 * dt;
+          const damp = Math.pow(0.82, dt);
+
+          this.vx = (this.vx + (target.x - this.x) * k) * damp;
+          this.vy = (this.vy + (target.y - this.y) * k) * damp;
+
+          this.x += this.vx * dt * 0.9;
+          this.y += this.vy * dt * 0.9;
+
+          this.h = hueLerp(this.h, target.h, 0.07 * dt);
+          this.s = lerp(this.s, target.s, 0.06 * dt);
+          this.l = lerp(this.l, target.l, 0.06 * dt);
+          this.a = lerp(this.a, target.a, 0.06 * dt);
+          this.r = lerp(this.r, target.r, 0.08 * dt);
+        }
+
+        draw(t) {
+          const tw = 0.78 + 0.22 * Math.sin(t * 2.0 + this.phase);
+          const alpha = this.a * tw;
+
+          ctx.globalAlpha = alpha * 0.2;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r * 3.0, 0, TAU);
+          ctx.fillStyle = `hsla(${this.h},${this.s}%,${this.l}%,1)`;
+          ctx.fill();
+
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r, 0, TAU);
+          ctx.fillStyle = `hsla(${this.h},${this.s}%,${this.l}%,1)`;
+          ctx.fill();
+        }
+      }
+
+      class System {
+        constructor() {
+          this.last = performance.now();
+          this.time = 0;
+
+          this.cx = W / 2;
+          this.cy = H / 2;
+          this.dim = Math.min(W, H);
+
+          const area = W * H;
+          // ✅ Tăng tổng số hạt lên cao nhất để tạo mật độ dày đặc cho cả tim và bụi liti
+          this.N = Math.round(clamp(area / 160, 8000, 25000));
+
+          this.form = { scatter: [], galaxy: [], heart: [], text: [] };
+          this.textParticles = [];
+
+          this.solar = {
+            xScale: TUNE.SOLAR_XS,
+            yScale: TUNE.SOLAR_YS,
+            tilt: TUNE.SOLAR_TILT,
+            maxOrbit: 0,
+            sunR: 0,
+            planets: [],
+            asteroids: []
+          };
+          this.stars = [];
+
+          this.buildAll();
+          this.buildTimeline();
+          this.initTextParticles();
+
+          this.p = [];
+          for (let i = 0; i < this.N; i++) {
+            const s = this.form.scatter[i];
+            this.p.push(new Particle(this.cx + s.x, this.cy + s.y));
+          }
+        }
+
+        buildAll() {
+          this.buildPlanets();
+          this.buildGalaxy();
+          this.buildScatter();
+          this.buildHeart();
+          this.buildText();    
+          this.buildStars();
+        }
+
+        buildStars() {
+          this.stars.length = 0;
+          const area = W * H;
+          const count = Math.round(clamp(area / TUNE.STAR_DENSITY_DIV, TUNE.STAR_MIN, TUNE.STAR_MAX));
+          const avoidR = (this.solar.maxOrbit || (this.dim * 0.35)) * 0.95;
+
+          for (let i = 0; i < count; i++) {
+            let x, y;
+            if (Math.random() < 0.6) {
+              let tries = 0;
+              do {
+                x = rnd(0, W); y = rnd(0, H);
+                tries++;
+              } while (tries < 10 && ((x - this.cx) ** 2 + (y - this.cy) ** 2) < avoidR ** 2);
+            } else {
+              x = rnd(0, W); y = rnd(0, H);
+            }
+            this.stars.push({
+              x, y,
+              r: rnd(0.4, 1.4), 
+              a: rnd(0.3, 0.9),
+              phase: rnd(0, TAU)
+            });
+          }
+        }
+
+        buildScatter() {
+          this.form.scatter.length = 0;
+          for (let i = 0; i < this.N; i++) {
+            const r = Math.abs(randomGaussian()) * (this.dim * 0.35);
+            const ang = rnd(0, TAU);
+            
+            this.form.scatter.push({
+              x: Math.cos(ang) * r,
+              y: Math.sin(ang) * r * 0.5,
+              h: rnd(200, 260), s: rnd(50, 80), l: rnd(40, 65),
+              a: rnd(0.2, 0.7), r: rnd(0.5, 1.2),
+              phase: rnd(0, TAU)
+            });
+          }
+          shuffle(this.form.scatter);
+        }
+
+        buildPlanets() {
+          const s = this.solar;
+          s.maxOrbit = (this.dim / 2) * TUNE.SOLAR_MARGIN;
+          const minOrbit = s.maxOrbit * 0.2;
+          s.sunR = minOrbit * 0.9 * TUNE.SUN_SCALE;
+
+          const scale = clamp(this.dim / 900, 0.6, 1.3);
+
+          const defs = [
+            { r: 4,  h: 30,  s: 25, l: 74 }, 
+            { r: 6,  h: 45,  s: 70, l: 72 }, 
+            { r: 7,  h: 205, s: 85, l: 72 }, 
+            { r: 5,  h: 12,  s: 90, l: 70 }, 
+            { r: 16, h: 28,  s: 70, l: 70 }, 
+            { r: 13, h: 44,  s: 75, l: 72, ring: true }, 
+            { r: 10, h: 190, s: 70, l: 76 }, 
+            { r: 10, h: 220, s: 85, l: 72 }  
+          ];
+
+          s.planets.length = 0;
+          for (let i = 0; i < defs.length; i++) {
+            const t = (defs.length === 1) ? 0 : i / (defs.length - 1);
+            const dist = lerp(minOrbit, s.maxOrbit, Math.pow(t, 1.15)); 
+            const radius = clamp(defs[i].r * scale, 3.5, 32); 
+            const speed = 0.25 / Math.sqrt(i + 1); 
+            
+            let startAngle1 = rnd(0, TAU);
+
+            s.planets.push({
+              dist, radius, speed,
+              h: defs[i].h, ss: defs[i].s, l: defs[i].l,
+              a0: startAngle1, 
+              ring: !!defs[i].ring, ringTilt: 0.35
+            });
+
+            s.planets.push({
+              dist, radius, speed,
+              h: defs[i].h, ss: defs[i].s, l: defs[i].l,
+              a0: startAngle1 + Math.PI + rnd(-0.3, 0.3), 
+              ring: !!defs[i].ring, ringTilt: 0.45 
+            });
+          }
+        }
+
+        buildGalaxy() {
+          this.form.galaxy.length = 0;
+          const s = this.solar;
+          const galaxyCount = Math.floor(this.N * 0.4); 
+
+          for (let i = 0; i < this.N; i++) {
+            if (i < galaxyCount) {
+                let dist, speed, h, sat, l;
+                const type = Math.random();
+                if (type < 0.3) { 
+                  dist = rnd(0, s.sunR * 2.0);
+                  speed = rnd(0.1, 0.3);
+                  h = rnd(35, 55); sat = rnd(80, 100); l = rnd(60, 90);
+                } else {
+                  const p = s.planets[Math.floor(rnd(0, s.planets.length))];
+                  dist = p.dist + rnd(-3, 3); 
+                  speed = p.speed;
+                  h = rnd(180, 260); sat = rnd(60, 100); l = rnd(60, 80);
+                }
+                this.form.galaxy.push({
+                  dist: dist, a0: rnd(0, TAU), speed: speed,
+                  h: h, s: sat, l: l,
+                  a: rnd(0.4, 0.9), r: rnd(0.5, 1.2), phase: rnd(0, TAU)
+                });
+            } else {
+                this.form.galaxy.push({
+                    dist: 0, a0:0, speed:0, h:0, s:0, l:0, a:0, r:0, phase:0
+                });
+            }
+          }
+          shuffle(this.form.galaxy);
+        }
+
+        // ✅ CẬP NHẬT TRÁI TIM: Đỉnh/Đáy nhọn tuyệt đối + Nhiều hạt li ti dạng mây
+        buildHeart() {
+          this.form.heart.length = 0;
+          this.heartScale = this.dim * TUNE.HEART_SCALE;
+          this.heartShiftY = -this.dim * 0.15; 
+
+          for (let i = 0; i < this.N; i++) {
+            const t = rnd(0, TAU); 
+            
+            // Tọa độ lõi của viền trái tim
+            let hx = 16 * Math.pow(Math.sin(t), 3);
+            let hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+
+            // Xử lý giữ chóp nhọn ở đáy (t ≈ PI)
+            let tipTaper = 1.0;
+            let distFromBottom = Math.abs(t - Math.PI);
+            // Càng gần chóp đáy, ống càng bị ép nhỏ lại để chóp cực kì sắc nhọn
+            if (distFromBottom < 0.5) {
+                tipTaper = 0.2 + 0.8 * (distFromBottom / 0.5);
+            }
+
+            // Phân bổ hạt: 35% làm mây bụi liti lan tỏa xung quanh, 65% làm thân ống đặc
+            const isDust = Math.random() < 0.35;
+            
+            // Tạo hướng tán xạ ngẫu nhiên (Isotropic scatter) thay vì dùng pháp tuyến
+            // Việc tán xạ đều từ tâm đường cong ra sẽ lấp đầy chỗ trống và giữ đỉnh/đáy không bị cắt
+            const scatterAngle = rnd(0, TAU);
+            
+            // randomGaussian() tạo hiệu ứng mật độ dày đặc ở chính giữa và nhạt dần ra mép ống
+            let thicknessBase = Math.abs(randomGaussian()); 
+            let thickness = isDust ? (thicknessBase * 5.0) : (thicknessBase * 2.2);
+            
+            // Ép độ dày lại khi ở chóp nhọn
+            thickness *= tipTaper;
+
+            hx += Math.cos(scatterAngle) * thickness;
+            hy += Math.sin(scatterAngle) * thickness;
+
+            // Màu sắc cho hạt li ti vs hạt lõi
+            const h = 340 + rnd(-12, 18);
+            const s = rnd(85, 100);
+            const l = isDust ? rnd(75, 95) : rnd(65, 85); 
+            const a = isDust ? rnd(0.4, 0.8) : rnd(0.8, 1.0);
+            const r = isDust ? rnd(0.2, 0.7) : rnd(0.5, 1.1); // Hạt li ti cực kì nhỏ
+
+            this.form.heart.push({
+              x: hx, 
+              y: -hy, // Đảo ngược y cho đúng chiều
+              h, s, l, a, r, 
+              phase: rnd(0, TAU)
+            });
+          }
+          shuffle(this.form.heart);
+        }
+
+        buildText() {
+          this.form.text.length = 0;
+          const off = document.createElement('canvas'); 
+          const octx = off.getContext('2d');
+          off.width = W; off.height = H;
+
+          const lines = (W < H * 1.2 || W < 600)
+            ? [PHRASE.split(' ').slice(0,2).join(' '), PHRASE.split(' ').slice(2).join(' ')]
+            : [PHRASE];
+
+          const baseSize = this.dim;
+          let fontSize = Math.floor(baseSize * (lines.length === 1 ? TUNE.TEXT_SCALE_ONE_LINE : TUNE.TEXT_SCALE_TWO_LINE));
+          fontSize = clamp(fontSize, 60, 280); 
+
+          octx.clearRect(0, 0, W, H);
+          octx.textAlign = 'center';
+          octx.textBaseline = 'middle';
+          octx.fillStyle = '#fff';
+          octx.font = `850 ${fontSize}px "Segoe Script","Brush Script MT","Snell Roundhand","Apple Chancery",cursive, sans-serif`;
+
+          const lineGap = fontSize * 1.1;
+          const startY = H / 2 - (lines.length - 1) * lineGap / 2;
+          for (let i = 0; i < lines.length; i++) {
+            octx.fillText(lines[i], W / 2, startY + i * lineGap);
+          }
+
+          const img = octx.getImageData(0, 0, W, H).data;
+          let gap = 3; 
+          const pts = [];
+          for (let y = 0; y < H; y += gap) {
+            for (let x = 0; x < W; x += gap) {
+              if (img[(y * W + x) * 4 + 3] > 80) pts.push({ x, y });
+            }
+          }
+          
+          this.textShiftY = this.dim * 0.28; 
+
+          if (pts.length > 0) {
+              for (let i = 0; i < this.N; i++) {
+                const pt = pts[i % pts.length]; 
+                this.form.text.push({
+                  x: pt.x - W / 2, 
+                  y: pt.y - H / 2 + this.textShiftY, 
+                  h: 335 + rnd(-10, 8), s: 100, l: 78 + rnd(-8, 8), 
+                  a: rnd(0.75, 1), r: rnd(0.6, 1.3), phase: rnd(0, TAU), wob: rnd(0.6, 1.8) 
+                });
+            }
+          }
+           shuffle(this.form.text);
+        }
+
+        initTextParticles() {
+            this.textParticles.length = 0;
+            for (const t of this.form.text) {
+                this.textParticles.push({
+                    x: this.cx + t.x, 
+                    y: this.cy + t.y,
+                    h: t.h, s: t.s, l: t.l, a: t.a, r: t.r,
+                    phase: t.phase, wob: t.wob
+                });
+            }
+        }
+
+        buildTimeline() {
+          this.timeline = [
+            { type: 'morph', from: 'scatter', to: 'galaxy', dur: 10.0, burst: 8 }, 
+            { type: 'hold',  formation: 'galaxy', dur: 8.0 }, 
+            { type: 'morph', from: 'galaxy', to: 'heart',  dur: 5.0, burst: 30 }, 
+            { type: 'hold',  formation: 'heart',  dur: 2.5 }, 
+            { type: 'show_text', formation: 'heart', dur: 4.0 }, 
+            { type: 'hold_all', formation: 'heart', dur: 999999 } 
+          ];
+          this.totalDur = this.timeline.reduce((s, seg) => s + seg.dur, 0); 
+        }
+
+        getSegment(t) {
+          let acc = 0;
+          for (let i = 0; i < this.timeline.length; i++) {
+            const seg = this.timeline[i];
+            const next = acc + seg.dur;
+            if (t >= acc && t < next) return { seg, local: t - acc };
+            acc = next;
+          }
+          return { seg: this.timeline[this.timeline.length - 1], local: 0 };
+        }
+
+        stageInfo() {
+          const mod = (this.time % this.totalDur + this.totalDur) % this.totalDur; 
+          const { seg, local } = this.getSegment(mod);
+          const p = clamp(local / seg.dur, 0, 1); 
+          return { seg, p };
+        }
+
+        formationPoint(name, i, t) {
+          const base = this.form[name][i];
+          if (!base) return { x: this.cx, y: this.cy, h: 0, s: 0, l: 0, a: 0, r: 0 };
+
+          const cx = this.cx, cy = this.cy;
+
+          if (name === 'scatter') {
+            const drift = 10;
+            const ox = Math.sin(t * 0.2 + base.phase) * drift;
+            const oy = Math.cos(t * 0.18 + base.phase) * drift;
+            return { x: cx + base.x + ox, y: cy + base.y + oy, h: base.h, s: base.s, l: base.l, a: base.a, r: base.r };
+          }
+
+          if (name === 'galaxy') {
+            if (base.a === 0) return { x: cx, y: cy, h: 0, s: 0, l: 0, a: 0, r: 0 }; 
+
+            const s = this.solar;
+            const ang = base.a0 + t * base.speed; 
+            
+            const x0 = Math.cos(ang) * base.dist * s.xScale;
+            const y0 = Math.sin(ang) * base.dist * s.yScale;
+
+            const c = Math.cos(s.tilt), si = Math.sin(s.tilt);
+            const x = x0 * c - y0 * si;
+            const y = x0 * si + y0 * c;
+
+            return { x: cx + x, y: cy + y, h: base.h, s: base.s, l: base.l, a: base.a, r: base.r };
+          }
+
+          if (name === 'heart') {
+            // Nhịp đập tim mềm mại
+            const beat = 1 + 0.03 * Math.sin(t * 4.0);
+            
+            const px = base.x * this.heartScale * beat;
+            const py = base.y * this.heartScale * beat + this.heartShiftY; 
+
+            // Hạt lấp lánh như kim tuyến
+            const sparkle = 0.5 + 0.5 * Math.sin(t * 15.0 + base.phase);
+
+            return {
+              x: cx + px, 
+              y: cy + py,
+              h: base.h, s: base.s, l: base.l,
+              a: base.a * sparkle, 
+              r: base.r
+            };
+          }
+          return { x: cx, y: cy, h: 0, s: 0, l: 100, a: 1, r: 1 };
+        }
+
+        drawBackground(t, stage) {
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = 'rgba(2, 3, 8, 0.3)'; 
+          ctx.fillRect(0, 0, W, H);
+
+          const starVis = (stage === 'galaxy') ? 1.0 : 0.75; 
+          ctx.fillStyle = '#ffffff';
+          for (const s of this.stars) {
+            const tw = 0.3 + 0.7 * Math.sin(t * 2.0 + s.phase); 
+            ctx.globalAlpha = starVis * s.a * tw;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, TAU);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+
+          const g = ctx.createRadialGradient(this.cx, this.cy, 0, this.cx, this.cy, this.dim * 0.8);
+          if (stage === 'galaxy') {
+            g.addColorStop(0, 'rgba(220, 220, 255, 0.08)'); 
+            g.addColorStop(0.3, 'rgba(120, 200, 255, 0.04)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+          } else {
+            g.addColorStop(0, 'rgba(255, 120, 190, 0.12)'); 
+            g.addColorStop(0.40, 'rgba(120, 90, 255, 0.05)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+          }
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+
+          const vg = ctx.createRadialGradient(this.cx, this.cy, this.dim * 0.2, this.cx, this.cy, this.dim * 0.9);
+          vg.addColorStop(0, 'rgba(0,0,0,0)');
+          vg.addColorStop(1, 'rgba(0,0,0,0.7)');
+          ctx.fillStyle = vg;
+          ctx.fillRect(0, 0, W, H);
+        }
+
+        drawPlanets(t, visibility, formationMode) {
+          if (visibility <= 0) return; 
+
+          const s = this.solar;
+          const cx = this.cx, cy = this.cy;
+
+          ctx.save(); 
+          ctx.globalCompositeOperation = 'source-over';
+          
+          if (formationMode !== 'heart') {
+              ctx.globalAlpha = visibility * 0.3; 
+              ctx.strokeStyle = 'rgba(200,230,255,0.2)';
+              ctx.lineWidth = 0.8;
+
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.rotate(s.tilt); 
+              ctx.scale(s.xScale, s.yScale); 
+              for (let i = 0; i < s.planets.length; i += 2) {
+                ctx.beginPath(); ctx.arc(0, 0, s.planets[i].dist, 0, TAU); ctx.stroke();
+              }
+              ctx.restore();
+          }
+
+          ctx.globalCompositeOperation = 'screen'; 
+          ctx.globalAlpha = visibility * 0.95;
+
+          const sunGlow = ctx.createRadialGradient(cx, cy, s.sunR * 0.1, cx, cy, s.sunR * 3.0);
+          sunGlow.addColorStop(0.0, 'rgba(255,255,230,0.8)');
+          sunGlow.addColorStop(0.3, 'rgba(255,210,140,0.3)');
+          sunGlow.addColorStop(1.0, 'rgba(0,0,0,0)');
+          ctx.fillStyle = sunGlow;
+          ctx.beginPath(); ctx.arc(cx, cy, s.sunR * 3.0, 0, TAU); ctx.fill();
+
+          const sunCore = ctx.createRadialGradient(cx - s.sunR*0.2, cy - s.sunR*0.2, s.sunR*0.1, cx, cy, s.sunR);
+          sunCore.addColorStop(0, 'rgba(255,255,235,1)');
+          sunCore.addColorStop(0.7,'rgba(255,170,70,1)');
+          sunCore.addColorStop(1, 'rgba(170,60,10,1)');
+          ctx.fillStyle = sunCore;
+          ctx.beginPath(); ctx.arc(cx, cy, s.sunR, 0, TAU); ctx.fill();
+
+          if (formationMode !== 'heart') {
+              ctx.globalAlpha = visibility;
+              for (const pl of s.planets) {
+                const ang = pl.a0 + t * pl.speed; 
+                const x0 = Math.cos(ang) * pl.dist * s.xScale;
+                const y0 = Math.sin(ang) * pl.dist * s.yScale;
+
+                const c = Math.cos(s.tilt), si = Math.sin(s.tilt);
+                const px = cx + x0 * c - y0 * si;
+                const py = cy + x0 * si + y0 * c;
+                
+                const r = pl.radius;
+
+                const grad = ctx.createRadialGradient(px - r*0.3, py - r*0.3, r*0.1, px, py, r);
+                grad.addColorStop(0, `hsla(${pl.h},${pl.ss}%,${pl.l + 20}%,1)`);
+                grad.addColorStop(1, `hsla(${pl.h},${pl.ss}%,${pl.l - 30}%,0.8)`);
+
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(px, py, r, 0, TAU); ctx.fill();
+
+                if (pl.ring) {
+                  ctx.save();
+                  ctx.globalAlpha = visibility * 0.6;
+                  ctx.translate(px, py);
+                  ctx.rotate(pl.ringTilt);
+                  ctx.scale(1, 0.4);
+                  ctx.lineWidth = r * 0.2;
+                  ctx.strokeStyle = `rgba(255,240,210,0.3)`;
+                  ctx.beginPath(); ctx.ellipse(0, 0, r * 2.0, r * 1.2, 0, 0, TAU); ctx.stroke();
+                  ctx.restore();
+                }
+              }
+          }
+          ctx.restore(); 
+        }
+
+        drawStaticText(t, globalAlphaMultiplier) {
+            if (this.textParticles.length === 0) return;
+            ctx.globalAlpha = globalAlphaMultiplier;
+            for (const pt of this.textParticles) {
+                const wob = pt.wob || 1;
+                const ox = Math.sin(t * 0.5 * wob + pt.phase) * (0.3 + wob * 0.2);
+                const oy = Math.cos(t * 0.4 * wob + pt.phase * 1.3) * (0.3 + wob * 0.15);
+                const x = pt.x + ox;
+                const y = pt.y + oy;
+
+                ctx.beginPath();
+                ctx.arc(x, y, pt.r, 0, TAU);
+                ctx.fillStyle = `hsla(${pt.h},${pt.s}%,${pt.l}%,${pt.a})`;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        step(now) {
+          const dtMs = clamp(now - this.last, 0, 60); 
+          this.last = now;
+
+          const dt = clamp(dtMs / 16.666, 0.5, 2.0); 
+          this.time += dtMs / 1000; 
+
+          const { seg, p } = this.stageInfo(); 
+          const t = this.time;
+
+          const dominant = (seg.type === 'hold' || seg.type === 'show_text' || seg.type === 'hold_all') 
+                           ? seg.formation : (p < 0.5 ? seg.from : seg.to);
+
+          this.drawBackground(t, dominant); 
+
+          let solarVis = 0;
+          if (seg.type === 'hold' && seg.formation === 'galaxy') solarVis = 1;
+
+          if (seg.type === 'morph') {
+            if (seg.from === 'galaxy') {
+              solarVis = easeInOutCubic(1 - p);
+            } else if (seg.to === 'galaxy') {
+              solarVis = easeInOutCubic(p);
+            }
+          }
+
+          this.drawPlanets(t, solarVis, seg.formation); 
+
+          let textAlpha = 0;
+          if (seg.type === 'show_text') {
+              textAlpha = easeInOutCubic(p); 
+          } else if (seg.type === 'hold_all') {
+              textAlpha = 1; 
+          }
+
+          if (textAlpha > 0) {
+              ctx.globalCompositeOperation = 'lighter';
+              this.drawStaticText(t, textAlpha);
+          }
+
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 1;
+
+          for (let i = 0; i < this.N; i++) {
+            let target;
+            if (seg.type.includes('hold') || seg.type === 'show_text') {
+              target = this.formationPoint(seg.formation, i, t);
+            } else {
+              const a = this.formationPoint(seg.from, i, t);
+              const b = this.formationPoint(seg.to, i, t);
+
+              const e = easeInOutCubic(p);
+              const burst = Math.sin(Math.PI * e) * (seg.burst * 0.7 || 0); 
+              const px = this.p[i];
+
+              target = {
+                x: lerp(a.x, b.x, e) + px.jx * burst,
+                y: lerp(a.y, b.y, e) + px.jy * burst,
+                h: hueLerp(a.h, b.h, e),
+                s: lerp(a.s, b.s, e),
+                l: lerp(a.l, b.l, e),
+                a: lerp(a.a, b.a, e),
+                r: lerp(a.r, b.r, e)
+              };
+            }
+            this.p[i].step(target, dt);
+            this.p[i].draw(t);
+          }
+        }
+
+        restart() {
+          this.time = 0;
+          this.last = performance.now();
+          this.buildAll(); 
+          this.initTextParticles();
+
+          for (let i = 0; i < this.N; i++) {
+            const s = this.form.scatter[i];
+            const p = this.p[i];
+            p.x = this.cx + s.x; 
+            p.y = this.cy + s.y;
+            p.vx = rnd(-0.02, 0.02);
+            p.vy = rnd(-0.02, 0.02);
+          }
+        }
+      }
+
+      let resizeTimeout;
+      function resize() {
+        DPR = Math.min(2, window.devicePixelRatio || 1); 
+        W = window.innerWidth;
+        H = window.innerHeight;
+
+        canvas.width = Math.floor(W * DPR);
+        canvas.height = Math.floor(H * DPR);
+        
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0); 
+        
+        if (system) {
+            system.cx = W / 2;
+            system.cy = H / 2;
+            system.dim = Math.min(W, H);
+            system.restart(); 
+        } else {
+            system = new System(); 
+        }
+      }
+
+      function raf(now) {
+        if (system) system.step(now);
+        requestAnimationFrame(raf);
+      }
+
+      window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(resize, 200);
+      }, { passive: true });
+
+      canvas.addEventListener('pointerdown', (e) => {
+          e.preventDefault(); 
+          if (system) system.restart();
+      }, { passive: false });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || (e.key && e.key.toLowerCase() === 'r')) {
+          e.preventDefault(); 
+          if (system) system.restart();
+        }
+      });
+      
+      canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+      resize();
+      requestAnimationFrame(raf);
+    })();
+  </script>
+</body>
+</html>

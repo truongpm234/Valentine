@@ -5,64 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Love you 3000</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: #020308;
-      overflow: hidden; 
-      touch-action: none; 
+    html, body{
+      margin:0; padding:0; width:100%; height:100%;
+      background:#020308; overflow:hidden; touch-action:none;
     }
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
+    canvas{ display:block; width:100%; height:100%; }
 
-    /* --- PHẦN CSS CHO NHẠC VÀ NÚT BẮT ĐẦU --- */
+    #overlay{
+      position:fixed; inset:0;
+      background:#020308; z-index:1000;
+      display:flex; align-items:center; justify-content:center;
+      transition:opacity 1s ease;
+    }
+    #start-btn{
+      padding:15px 35px; font-size:18px; color:#fff;
+      background:transparent; border:2px solid #ffb4dc;
+      border-radius:50px; cursor:pointer;
+      font-family:system-ui, sans-serif;
+      box-shadow:0 0 15px rgba(255,180,220,.4);
+    }
+    #start-btn:hover{ background:rgba(255,180,220,.1); }
+
+    .hint{
+      position:fixed; left:50%; transform:translateX(-50%);
+      bottom:20px; padding:8px 12px;
+      font:12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:rgba(255,255,255,.8);
+      background:rgba(0,0,0,.4);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:20px;
+      backdrop-filter:blur(5px);
+      pointer-events:none;
+      user-select:none;
+      box-shadow:0 4px 10px rgba(0,0,0,.3);
+      white-space:nowrap;
+      z-index:10;
+    }
+    /* Nền màn hình chờ */
     #overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      position: fixed; inset: 0;
       background: #020308; z-index: 1000;
       display: flex; align-items: center; justify-content: center;
       transition: opacity 1s ease;
     }
-    #start-btn {
-      padding: 15px 35px; font-size: 18px; color: white;
-      background: transparent; border: 2px solid #ffb4dc;
-      border-radius: 50px; cursor: pointer;
-      font-family: system-ui, sans-serif;
-      box-shadow: 0 0 15px rgba(255, 180, 220, 0.4);
-    }
-    #start-btn:hover { background: rgba(255, 180, 220, 0.1); }
 
-    .hint {
-      position: fixed;
-      left: 50%; 
-      transform: translateX(-50%);
-      bottom: 20px;
-      padding: 8px 12px;
-      font: 12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      color: rgba(255,255,255,0.8);
-      background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 20px;
-      backdrop-filter: blur(5px);
-      pointer-events: none;
-      user-select: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      white-space: nowrap;
-      z-index: 10;
+    /* Style Nút Bắt Đầu Mới */
+    #start-btn {
+      padding: 18px 40px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #ffffff;
+      background: rgba(255, 180, 220, 0.1); /* Nền hồng trong suốt */
+      border: 2px solid #ffb4dc;
+      border-radius: 50px;
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      
+      /* Hiệu ứng bóng đổ phát sáng */
+      box-shadow: 0 0 20px rgba(255, 180, 220, 0.3), 
+                  inset 0 0 10px rgba(255, 180, 220, 0.2);
+      backdrop-filter: blur(10px); /* Làm mờ hậu cảnh */
+      
+      /* Tạo hiệu ứng nhịp thở cho nút */
+      animation: heartbeat 2s infinite ease-in-out;
     }
-    .hint b { color: rgba(255,160,210,1); font-weight: 600; }
+
+    /* Hiệu ứng khi di chuột vào (Hover) */
+    #start-btn:hover {
+      background: rgba(255, 180, 220, 0.3);
+      box-shadow: 0 0 40px rgba(255, 180, 220, 0.6), 
+                  inset 0 0 20px rgba(255, 180, 220, 0.4);
+      transform: scale(1.05);
+    }
+
+    /* Hiệu ứng khi nhấn vào */
+    #start-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Định nghĩa hiệu ứng nhịp thở */
+    @keyframes heartbeat {
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 180, 220, 0.3); }
+      50% { transform: scale(1.03); box-shadow: 0 0 35px rgba(255, 180, 220, 0.5); }
+      100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 180, 220, 0.3); }
+    }
+    .hint b{ color:rgba(255,160,210,1); font-weight:600; }
   </style>
 </head>
 <body>
   <div id="overlay">
-    <button id="start-btn" onclick="initExperience()"> Chạm vào để mở quà :>> </button>
-  </div>
+  <button id="start-btn" onclick="initExperience()">Chạm để mở quà nè :>></button>
+</div>
 
-  <audio id="bg-music">
+  <audio id="bg-music" playsinline>
     <source src="music.mp3" type="audio/mpeg">
   </audio>
 
@@ -71,24 +111,19 @@
 
   <script>
     function initExperience() {
-      const audio = document.getElementById('bg-music');
       const overlay = document.getElementById('overlay');
-      
-      audio.play().catch(e => console.log("Trình duyệt chặn nhạc"));
-      
       overlay.style.opacity = '0';
-      setTimeout(() => {
-        overlay.style.display = 'none';
-      }, 1000);
+      overlay.style.pointerEvents = 'none';
+      setTimeout(() => { overlay.style.display = 'none'; }, 1000);
 
-      if (window.experienceSystem) {
-        window.experienceSystem.restart();
-      }
+      if (window.experienceSystem) window.experienceSystem.restartAll(true);
     }
 
     (() => {
       const canvas = document.getElementById('c');
       const ctx = canvas.getContext('2d', { alpha: true, desynchronized: false });
+
+      const audioEl = document.getElementById('bg-music');
 
       const TAU = Math.PI * 2;
       const PHRASE = 'I love you';
@@ -97,17 +132,17 @@
       let system = null;
 
       const TUNE = {
-        STAR_DENSITY_DIV: 1500, 
-        STAR_MIN: 800,  
+        STAR_DENSITY_DIV: 1500,
+        STAR_MIN: 800,
         STAR_MAX: 2500,
-        SOLAR_MARGIN: 0.92, 
-        SOLAR_XS: 1.1,      
-        SOLAR_YS: 0.8, 
-        SOLAR_TILT: -0.25, 
-        SUN_SCALE: 1.1, 
-        HEART_SCALE: 0.016, 
-        TEXT_SCALE_ONE_LINE: 0.24, 
-        TEXT_SCALE_TWO_LINE: 0.20 
+        SOLAR_MARGIN: 0.92,
+        SOLAR_XS: 1.1,
+        SOLAR_YS: 0.8,
+        SOLAR_TILT: -0.25,
+        SUN_SCALE: 1.1,
+        HEART_SCALE: 0.016,
+        TEXT_SCALE_ONE_LINE: 0.24,
+        TEXT_SCALE_TWO_LINE: 0.20
       };
 
       const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -117,7 +152,6 @@
         const d = ((h2 - h1 + 540) % 360) - 180;
         return (h1 + d * t + 360) % 360;
       };
-
       const rnd = (min, max) => Math.random() * (max - min) + min;
       const randomGaussian = () => (Math.random() + Math.random() + Math.random() + Math.random() - 2.0) / 2.0;
 
@@ -128,6 +162,24 @@
         }
         return arr;
       };
+
+      function restartAudio(forcePlay = true) {
+        if (!audioEl) return;
+        try {
+          audioEl.pause();
+          audioEl.currentTime = 0;
+        } catch (e) {}
+        if (forcePlay) audioEl.play().catch(() => {});
+      }
+
+      // debounce spam restart
+      let lastRestart = 0;
+      function safeRestart(forcePlay = true) {
+        const now = performance.now();
+        if (now - lastRestart < 250) return;
+        lastRestart = now;
+        if (system) system.restartAll(forcePlay);
+      }
 
       class Particle {
         constructor(x, y) {
@@ -143,7 +195,6 @@
           this.jx = rnd(-1, 1);
           this.jy = rnd(-1, 1);
         }
-
         step(target, dt) {
           const k = 0.06 * dt;
           const damp = Math.pow(0.82, dt);
@@ -157,15 +208,18 @@
           this.a = lerp(this.a, target.a, 0.06 * dt);
           this.r = lerp(this.r, target.r, 0.08 * dt);
         }
-
         draw(t) {
           const tw = 0.78 + 0.22 * Math.sin(t * 2.0 + this.phase);
           const alpha = this.a * tw;
-          ctx.globalAlpha = alpha * 0.2;
+
+          // glow soft
+          ctx.globalAlpha = alpha * 0.18;
           ctx.beginPath();
           ctx.arc(this.x, this.y, this.r * 3.0, 0, TAU);
           ctx.fillStyle = `hsla(${this.h},${this.s}%,${this.l}%,1)`;
           ctx.fill();
+
+          // core
           ctx.globalAlpha = alpha;
           ctx.beginPath();
           ctx.arc(this.x, this.y, this.r, 0, TAU);
@@ -181,16 +235,33 @@
           this.cx = W / 2;
           this.cy = H / 2;
           this.dim = Math.min(W, H);
+
           const area = W * H;
           this.N = Math.round(clamp(area / 180, 7000, 20000));
+
           this.form = { scatter: [], galaxy: [], heart: [], text: [] };
           this.textParticles = [];
-          this.solar = { xScale: TUNE.SOLAR_XS, yScale: TUNE.SOLAR_YS, tilt: TUNE.SOLAR_TILT, maxOrbit: 0, sunR: 0, planets: [], asteroids: [] };
+          this.solar = {
+            xScale: TUNE.SOLAR_XS,
+            yScale: TUNE.SOLAR_YS,
+            tilt: TUNE.SOLAR_TILT,
+            maxOrbit: 0,
+            sunR: 0,
+            planets: [],
+            asteroids: []
+          };
           this.stars = [];
+          this.p = [];
+
           this.buildAll();
           this.buildTimeline();
           this.initTextParticles();
-          this.p = [];
+
+          this.resetParticlesToScatter();
+        }
+
+        resetParticlesToScatter() {
+          this.p.length = 0;
           for (let i = 0; i < this.N; i++) {
             const s = this.form.scatter[i];
             this.p.push(new Particle(this.cx + s.x, this.cy + s.y));
@@ -202,7 +273,7 @@
           this.buildGalaxy();
           this.buildScatter();
           this.buildHeart();
-          this.buildText();    
+          this.buildText();
           this.buildStars();
         }
 
@@ -211,13 +282,18 @@
           const area = W * H;
           const count = Math.round(clamp(area / TUNE.STAR_DENSITY_DIV, TUNE.STAR_MIN, TUNE.STAR_MAX));
           const avoidR = (this.solar.maxOrbit || (this.dim * 0.35)) * 0.95;
+
           for (let i = 0; i < count; i++) {
             let x, y;
             if (Math.random() < 0.6) {
               let tries = 0;
-              do { x = rnd(0, W); y = rnd(0, H); tries++; } while (tries < 10 && ((x - this.cx) ** 2 + (y - this.cy) ** 2) < avoidR ** 2);
-            } else { x = rnd(0, W); y = rnd(0, H); }
-            this.stars.push({ x, y, r: rnd(0.4, 1.4), a: rnd(0.3, 0.9), phase: rnd(0, TAU) });
+              do {
+                x = rnd(0, W); y = rnd(0, H); tries++;
+              } while (tries < 10 && ((x - this.cx) ** 2 + (y - this.cy) ** 2) < avoidR ** 2);
+            } else {
+              x = rnd(0, W); y = rnd(0, H);
+            }
+            this.stars.push({ x, y, r: rnd(0.4, 1.4), a: rnd(0.25, 0.8), phase: rnd(0, TAU) });
           }
         }
 
@@ -226,7 +302,16 @@
           for (let i = 0; i < this.N; i++) {
             const r = Math.abs(randomGaussian()) * (this.dim * 0.35);
             const ang = rnd(0, TAU);
-            this.form.scatter.push({ x: Math.cos(ang) * r, y: Math.sin(ang) * r * 0.5, h: rnd(200, 260), s: rnd(50, 80), l: rnd(40, 65), a: rnd(0.2, 0.7), r: rnd(0.5, 1.2), phase: rnd(0, TAU) });
+            this.form.scatter.push({
+              x: Math.cos(ang) * r,
+              y: Math.sin(ang) * r * 0.5,
+              h: rnd(200, 260),
+              s: rnd(50, 80),
+              l: rnd(40, 65),
+              a: rnd(0.2, 0.7),
+              r: rnd(0.5, 1.2),
+              phase: rnd(0, TAU)
+            });
           }
           shuffle(this.form.scatter);
         }
@@ -236,32 +321,77 @@
           s.maxOrbit = (this.dim / 2) * TUNE.SOLAR_MARGIN;
           const minOrbit = s.maxOrbit * 0.2;
           s.sunR = minOrbit * 0.9 * TUNE.SUN_SCALE;
+
           const scale = clamp(this.dim / 900, 0.6, 1.3);
-          const defs = [{ r: 4, h: 30, s: 25, l: 74 }, { r: 6, h: 45, s: 70, l: 72 }, { r: 7, h: 205, s: 85, l: 72 }, { r: 5, h: 12, s: 90, l: 70 }, { r: 16, h: 28, s: 70, l: 70 }, { r: 13, h: 44, s: 75, l: 72, ring: true }, { r: 10, h: 190, s: 70, l: 76 }, { r: 10, h: 220, s: 85, l: 72 }];
+          const defs = [
+            { r: 4,  h: 30,  s: 25, l: 74 },
+            { r: 6,  h: 45,  s: 70, l: 72 },
+            { r: 7,  h: 205, s: 85, l: 72 },
+            { r: 5,  h: 12,  s: 90, l: 70 },
+            { r: 16, h: 28,  s: 70, l: 70 },
+            { r: 13, h: 44,  s: 75, l: 72, ring: true },
+            { r: 10, h: 190, s: 70, l: 76 },
+            { r: 10, h: 220, s: 85, l: 72 }
+          ];
+
           s.planets.length = 0;
           for (let i = 0; i < defs.length; i++) {
             const t = (defs.length === 1) ? 0 : i / (defs.length - 1);
-            const dist = lerp(minOrbit, s.maxOrbit, Math.pow(t, 1.15)); 
-            const radius = clamp(defs[i].r * scale, 3.5, 32); 
-            const speed = 0.25 / Math.sqrt(i + 1); 
+            const dist = lerp(minOrbit, s.maxOrbit, Math.pow(t, 1.15));
+            const radius = clamp(defs[i].r * scale, 3.5, 32);
+            const speed = 0.25 / Math.sqrt(i + 1);
             let startAngle1 = rnd(0, TAU);
-            s.planets.push({ dist, radius, speed, h: defs[i].h, ss: defs[i].s, l: defs[i].l, a0: startAngle1, ring: !!defs[i].ring, ringTilt: 0.35 });
-            s.planets.push({ dist, radius, speed, h: defs[i].h, ss: defs[i].s, l: defs[i].l, a0: startAngle1 + Math.PI + rnd(-0.3, 0.3), ring: !!defs[i].ring, ringTilt: 0.45 });
+
+            s.planets.push({
+              dist, radius, speed,
+              h: defs[i].h, ss: defs[i].s, l: defs[i].l,
+              a0: startAngle1,
+              ring: !!defs[i].ring,
+              ringTilt: 0.35
+            });
+            s.planets.push({
+              dist, radius, speed,
+              h: defs[i].h, ss: defs[i].s, l: defs[i].l,
+              a0: startAngle1 + Math.PI + rnd(-0.3, 0.3),
+              ring: !!defs[i].ring,
+              ringTilt: 0.45
+            });
           }
         }
 
         buildGalaxy() {
           this.form.galaxy.length = 0;
           const s = this.solar;
-          const galaxyCount = Math.floor(this.N * 0.4); 
+          const galaxyCount = Math.floor(this.N * 0.4);
+
           for (let i = 0; i < this.N; i++) {
             if (i < galaxyCount) {
               let dist, speed, h, sat, l;
               const type = Math.random();
-              if (type < 0.3) { dist = rnd(0, s.sunR * 2.0); speed = rnd(0.1, 0.3); h = rnd(35, 55); sat = rnd(80, 100); l = rnd(60, 90); }
-              else { const p = s.planets[Math.floor(rnd(0, s.planets.length))]; dist = p.dist + rnd(-3, 3); speed = p.speed; h = rnd(180, 260); sat = rnd(60, 100); l = rnd(60, 80); }
-              this.form.galaxy.push({ dist: dist, a0: rnd(0, TAU), speed: speed, h: h, s: sat, l: l, a: rnd(0.4, 0.9), r: rnd(0.5, 1.2), phase: rnd(0, TAU) });
-            } else { this.form.galaxy.push({ dist: 0, a0:0, speed:0, h:0, s:0, l:0, a:0, r:0, phase:0 }); }
+              if (type < 0.3) {
+                dist = rnd(0, s.sunR * 2.0);
+                speed = rnd(0.1, 0.3);
+                h = rnd(35, 55);
+                sat = rnd(80, 100);
+                l = rnd(60, 90);
+              } else {
+                const p = s.planets[Math.floor(rnd(0, s.planets.length))];
+                dist = p.dist + rnd(-3, 3);
+                speed = p.speed;
+                h = rnd(180, 260);
+                sat = rnd(60, 100);
+                l = rnd(60, 80);
+              }
+              this.form.galaxy.push({
+                dist, a0: rnd(0, TAU), speed,
+                h, s: sat, l,
+                a: rnd(0.4, 0.9),
+                r: rnd(0.5, 1.2),
+                phase: rnd(0, TAU)
+              });
+            } else {
+              this.form.galaxy.push({ dist: 0, a0:0, speed:0, h:0, s:0, l:0, a:0, r:0, phase:0 });
+            }
           }
           shuffle(this.form.galaxy);
         }
@@ -269,38 +399,53 @@
         buildHeart() {
           this.form.heart.length = 0;
           this.heartScale = this.dim * TUNE.HEART_SCALE;
-          this.heartShiftY = -this.dim * 0.15; 
+          this.heartShiftY = -this.dim * 0.15;
+
           for (let i = 0; i < this.N; i++) {
-            const t = rnd(0, TAU); 
+            const t = rnd(0, TAU);
             let hx = 16 * Math.pow(Math.sin(t), 3);
             let hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+
             const dx = 48 * Math.pow(Math.sin(t), 2) * Math.cos(t);
             const dy = -13 * Math.sin(t) + 10 * Math.sin(2*t) + 6 * Math.sin(3*t) + 4 * Math.sin(4*t);
-            let mag = Math.sqrt(dx*dx + dy*dy);
-            let nx = (mag < 0.001) ? 0 : -dy / mag;
-            let ny = (mag < 0.001) ? -1 : dx / mag;
-            const thickness = randomGaussian() * 0.5; 
+            const mag = Math.sqrt(dx*dx + dy*dy) || 1;
+            const nx = -dy / mag;
+            const ny = dx / mag;
+
+            const thickness = randomGaussian() * 0.5;
             hx += nx * thickness;
             hy += ny * thickness;
-            this.form.heart.push({ x: hx, y: -hy, h: 340 + rnd(-15, 15), s: rnd(85, 100), l: rnd(70, 95), a: rnd(0.8, 1.0), r: rnd(0.4, 1.0), phase: rnd(0, TAU) });
+
+            this.form.heart.push({
+              x: hx, y: -hy,
+              h: 340 + rnd(-15, 15),
+              s: rnd(85, 100),
+              l: rnd(70, 95),
+              a: rnd(0.8, 1.0),
+              r: rnd(0.4, 1.0),
+              phase: rnd(0, TAU)
+            });
           }
           shuffle(this.form.heart);
         }
 
         buildText() {
           this.form.text.length = 0;
-          const off = document.createElement('canvas'); 
+          const off = document.createElement('canvas');
           const octx = off.getContext('2d');
           off.width = W; off.height = H;
+
           const baseSize = this.dim;
           let fontSize = Math.floor(baseSize * TUNE.TEXT_SCALE_ONE_LINE);
-          fontSize = clamp(fontSize, 60, 280); 
+          fontSize = clamp(fontSize, 60, 280);
+
           octx.clearRect(0, 0, W, H);
           octx.textAlign = 'center';
           octx.textBaseline = 'middle';
           octx.fillStyle = '#fff';
           octx.font = `850 ${fontSize}px "Segoe Script","Brush Script MT","Snell Roundhand","Apple Chancery",cursive, sans-serif`;
           octx.fillText(PHRASE, W / 2, H / 2);
+
           const img = octx.getImageData(0, 0, W, H).data;
           const pts = [];
           for (let y = 0; y < H; y += 3) {
@@ -308,11 +453,22 @@
               if (img[(y * W + x) * 4 + 3] > 80) pts.push({ x, y });
             }
           }
-          this.textShiftY = this.dim * 0.28; 
+
+          this.textShiftY = this.dim * 0.28;
           if (pts.length > 0) {
             for (let i = 0; i < this.N; i++) {
-              const pt = pts[i % pts.length]; 
-              this.form.text.push({ x: pt.x - W / 2, y: pt.y - H / 2 + this.textShiftY, h: 335 + rnd(-10, 8), s: 100, l: 78 + rnd(-8, 8), a: rnd(0.75, 1), r: rnd(0.6, 1.3), phase: rnd(0, TAU), wob: rnd(0.6, 1.8) });
+              const pt = pts[i % pts.length];
+              this.form.text.push({
+                x: pt.x - W / 2,
+                y: pt.y - H / 2 + this.textShiftY,
+                h: 335 + rnd(-10, 8),
+                s: 100,
+                l: 78 + rnd(-8, 8),
+                a: rnd(0.75, 1),
+                r: rnd(0.6, 1.3),
+                phase: rnd(0, TAU),
+                wob: rnd(0.6, 1.8)
+              });
             }
           }
           shuffle(this.form.text);
@@ -320,18 +476,24 @@
 
         initTextParticles() {
           this.textParticles.length = 0;
-          for (const t of this.form.text) { this.textParticles.push({ x: this.cx + t.x, y: this.cy + t.y, h: t.h, s: t.s, l: t.l, a: t.a, r: t.r, phase: t.phase, wob: t.wob }); }
+          for (const t of this.form.text) {
+            this.textParticles.push({
+              x: this.cx + t.x,
+              y: this.cy + t.y,
+              h: t.h, s: t.s, l: t.l, a: t.a, r: t.r,
+              phase: t.phase, wob: t.wob
+            });
+          }
         }
 
-        // ✅ ĐÃ CHỈNH SỬA: Tổng thời gian các giai đoạn cộng lại bằng 14 giây
         buildTimeline() {
           this.timeline = [
-            { type: 'morph', from: 'scatter', to: 'galaxy', dur: 4.0 }, 
-            { type: 'hold',  formation: 'galaxy', dur: 2.0 }, 
-            { type: 'morph', from: 'galaxy', to: 'heart',  dur: 3.0 }, 
-            { type: 'hold',  formation: 'heart',  dur: 1.0 }, 
-            { type: 'show_text', formation: 'heart', dur: 4.0 }, // Hoàn thành tại giây thứ 14
-            { type: 'hold_all', formation: 'heart', dur: 999999 } 
+            { type: 'morph', from: 'scatter', to: 'galaxy', dur: 4.0 },
+            { type: 'hold',  formation: 'galaxy', dur: 2.0 },
+            { type: 'morph', from: 'galaxy', to: 'heart',  dur: 3.0 },
+            { type: 'hold',  formation: 'heart',  dur: 1.0 },
+            { type: 'show_text', formation: 'heart', dur: 4.0 },
+            { type: 'hold_all', formation: 'heart', dur: 999999 }
           ];
           this.totalDur = 14.0;
         }
@@ -348,137 +510,288 @@
         }
 
         stageInfo() {
-          const mod = Math.min(this.time, 14.0); // Khóa thời gian tối đa là 14s
+          const mod = Math.min(this.time, 14.0);
           const { seg, local } = this.getSegment(mod);
-          const p = clamp(local / seg.dur, 0, 1); 
+          const p = clamp(local / seg.dur, 0, 1);
           return { seg, p };
         }
 
         formationPoint(name, i, t) {
           const base = this.form[name][i];
           if (!base) return { x: this.cx, y: this.cy, h: 0, s: 0, l: 0, a: 0, r: 0 };
+
           if (name === 'scatter') {
             const drift = 10;
-            return { x: this.cx + base.x + Math.sin(t * 0.2 + base.phase) * drift, y: this.cy + base.y + Math.cos(t * 0.18 + base.phase) * drift, h: base.h, s: base.s, l: base.l, a: base.a, r: base.r };
+            return {
+              x: this.cx + base.x + Math.sin(t * 0.2 + base.phase) * drift,
+              y: this.cy + base.y + Math.cos(t * 0.18 + base.phase) * drift,
+              h: base.h, s: base.s, l: base.l, a: base.a, r: base.r
+            };
           }
+
           if (name === 'galaxy') {
-            if (base.a === 0) return { x: this.cx, y: this.cy, h: 0, s: 0, l: 0, a: 0, r: 0 }; 
-            const ang = base.a0 + t * base.speed; 
+            if (base.a === 0) return { x: this.cx, y: this.cy, h: 0, s: 0, l: 0, a: 0, r: 0 };
+            const ang = base.a0 + t * base.speed;
             const x0 = Math.cos(ang) * base.dist * 1.1;
             const y0 = Math.sin(ang) * base.dist * 0.8;
             const c = Math.cos(-0.25), si = Math.sin(-0.25);
-            return { x: this.cx + (x0 * c - y0 * si), y: this.cy + (x0 * si + y0 * c), h: base.h, s: base.s, l: base.l, a: base.a, r: base.r };
+            return {
+              x: this.cx + (x0 * c - y0 * si),
+              y: this.cy + (x0 * si + y0 * c),
+              h: base.h, s: base.s, l: base.l, a: base.a, r: base.r
+            };
           }
+
           if (name === 'heart') {
             const beat = 1 + 0.03 * Math.sin(t * 4.0);
-            return { x: this.cx + base.x * this.heartScale * beat, y: this.cy + base.y * this.heartScale * beat + this.heartShiftY, h: base.h, s: base.s, l: base.l, a: base.a * (0.5 + 0.5 * Math.sin(t * 15.0 + base.phase)), r: base.r };
+            return {
+              x: this.cx + base.x * this.heartScale * beat,
+              y: this.cy + base.y * this.heartScale * beat + this.heartShiftY,
+              h: base.h, s: base.s, l: base.l,
+              a: base.a * (0.5 + 0.5 * Math.sin(t * 15.0 + base.phase)),
+              r: base.r
+            };
           }
+
           return { x: this.cx, y: this.cy, h: 0, s: 0, l: 100, a: 1, r: 1 };
         }
 
+        // ✅ FIX tích sáng: clear nền hoàn toàn mỗi frame
         drawBackground(t, stage) {
           ctx.globalCompositeOperation = 'source-over';
-          ctx.fillStyle = 'rgba(2, 3, 8, 0.3)'; 
+          ctx.globalAlpha = 1;
+
+          ctx.fillStyle = '#020308';
           ctx.fillRect(0, 0, W, H);
-          const starVis = (stage === 'galaxy') ? 1.0 : 0.75; 
+
+          const starVis = (stage === 'galaxy') ? 1.0 : 0.75;
           ctx.fillStyle = '#ffffff';
           for (const s of this.stars) {
             ctx.globalAlpha = starVis * s.a * (0.3 + 0.7 * Math.sin(t * 2.0 + s.phase));
-            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill();
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, TAU);
+            ctx.fill();
           }
           ctx.globalAlpha = 1;
+
           const g = ctx.createRadialGradient(this.cx, this.cy, 0, this.cx, this.cy, this.dim * 0.8);
-          g.addColorStop(0, stage === 'galaxy' ? 'rgba(220, 220, 255, 0.08)' : 'rgba(255, 120, 190, 0.12)');
+          g.addColorStop(0, stage === 'galaxy'
+            ? 'rgba(220, 220, 255, 0.08)'
+            : 'rgba(255, 120, 190, 0.10)'
+          );
           g.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
         }
 
         drawPlanets(t, visibility, formationMode) {
-          if (visibility <= 0) return; 
+          if (visibility <= 0) return;
           const s = this.solar;
-          ctx.save(); ctx.globalCompositeOperation = 'source-over';
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'source-over';
+
           if (formationMode !== 'heart') {
-            ctx.globalAlpha = visibility * 0.3; ctx.strokeStyle = 'rgba(200,230,255,0.2)'; ctx.lineWidth = 0.8;
-            ctx.save(); ctx.translate(this.cx, this.cy); ctx.rotate(s.tilt); ctx.scale(s.xScale, s.yScale); 
-            for (let i = 0; i < s.planets.length; i += 2) { ctx.beginPath(); ctx.arc(0, 0, s.planets[i].dist, 0, TAU); ctx.stroke(); }
+            ctx.globalAlpha = visibility * 0.25;
+            ctx.strokeStyle = 'rgba(200,230,255,0.2)';
+            ctx.lineWidth = 0.8;
+
+            ctx.save();
+            ctx.translate(this.cx, this.cy);
+            ctx.rotate(s.tilt);
+            ctx.scale(s.xScale, s.yScale);
+            for (let i = 0; i < s.planets.length; i += 2) {
+              ctx.beginPath();
+              ctx.arc(0, 0, s.planets[i].dist, 0, TAU);
+              ctx.stroke();
+            }
             ctx.restore();
           }
-          ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = visibility * 0.95;
+
+          // giảm nhẹ alpha để tránh “đốt sáng”
+          ctx.globalCompositeOperation = 'screen';
+          ctx.globalAlpha = visibility * 0.75;
+
           const sunGlow = ctx.createRadialGradient(this.cx, this.cy, s.sunR * 0.1, this.cx, this.cy, s.sunR * 3.0);
-          sunGlow.addColorStop(0, 'rgba(255,255,230,0.8)'); sunGlow.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.fillStyle = sunGlow; ctx.beginPath(); ctx.arc(this.cx, this.cy, s.sunR * 3.0, 0, TAU); ctx.fill();
-          const sunCore = ctx.createRadialGradient(this.cx - s.sunR*0.2, this.cy - s.sunR*0.2, s.sunR*0.1, this.cx, this.cy, s.sunR);
-          sunCore.addColorStop(0, 'rgba(255,255,235,1)'); sunCore.addColorStop(1, 'rgba(170,60,10,1)');
-          ctx.fillStyle = sunCore; ctx.beginPath(); ctx.arc(this.cx, this.cy, s.sunR, 0, TAU); ctx.fill();
+          sunGlow.addColorStop(0, 'rgba(255,255,230,0.75)');
+          sunGlow.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = sunGlow;
+          ctx.beginPath();
+          ctx.arc(this.cx, this.cy, s.sunR * 2.6, 0, TAU);
+          ctx.fill();
+
+          const sunCore = ctx.createRadialGradient(
+            this.cx - s.sunR*0.2, this.cy - s.sunR*0.2, s.sunR*0.1,
+            this.cx, this.cy, s.sunR
+          );
+          sunCore.addColorStop(0, 'rgba(255,255,235,1)');
+          sunCore.addColorStop(1, 'rgba(170,60,10,1)');
+          ctx.fillStyle = sunCore;
+          ctx.beginPath();
+          ctx.arc(this.cx, this.cy, s.sunR, 0, TAU);
+          ctx.fill();
+
           if (formationMode !== 'heart') {
-            ctx.globalAlpha = visibility;
+            ctx.globalAlpha = visibility * 0.85;
             for (const pl of s.planets) {
-              const ang = pl.a0 + t * pl.speed; 
+              const ang = pl.a0 + t * pl.speed;
+
               const px = this.cx + (Math.cos(ang) * pl.dist * s.xScale * Math.cos(s.tilt) - Math.sin(ang) * pl.dist * s.yScale * Math.sin(s.tilt));
               const py = this.cy + (Math.cos(ang) * pl.dist * s.xScale * Math.sin(s.tilt) + Math.sin(ang) * pl.dist * s.yScale * Math.cos(s.tilt));
+
               const grad = ctx.createRadialGradient(px - pl.radius*0.3, py - pl.radius*0.3, pl.radius*0.1, px, py, pl.radius);
-              grad.addColorStop(0, `hsla(${pl.h},${pl.ss}%,${pl.l + 20}%,1)`); grad.addColorStop(1, `hsla(${pl.h},${pl.ss}%,${pl.l - 30}%,0.8)`);
-              ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(px, py, pl.radius, 0, TAU); ctx.fill();
+              grad.addColorStop(0, `hsla(${pl.h},${pl.ss}%,${pl.l + 20}%,1)`);
+              grad.addColorStop(1, `hsla(${pl.h},${pl.ss}%,${pl.l - 30}%,0.8)`);
+              ctx.fillStyle = grad;
+              ctx.beginPath();
+              ctx.arc(px, py, pl.radius, 0, TAU);
+              ctx.fill();
             }
           }
-          ctx.restore(); 
+
+          ctx.restore();
         }
 
         drawStaticText(t, globalAlphaMultiplier) {
           if (this.textParticles.length === 0) return;
           ctx.globalAlpha = globalAlphaMultiplier;
+
           for (const pt of this.textParticles) {
             const ox = Math.sin(t * 0.5 * pt.wob + pt.phase) * (0.3 + pt.wob * 0.2);
             const oy = Math.cos(t * 0.4 * pt.wob + pt.phase * 1.3) * (0.3 + pt.wob * 0.15);
-            ctx.beginPath(); ctx.arc(pt.x + ox, pt.y + oy, pt.r, 0, TAU); ctx.fillStyle = `hsla(${pt.h},${pt.s}%,${pt.l}%,${pt.a})`; ctx.fill();
+            ctx.beginPath();
+            ctx.arc(pt.x + ox, pt.y + oy, pt.r, 0, TAU);
+            ctx.fillStyle = `hsla(${pt.h},${pt.s}%,${pt.l}%,${pt.a})`;
+            ctx.fill();
           }
           ctx.globalAlpha = 1;
         }
 
         step(now) {
-          const dtMs = clamp(now - this.last, 0, 60); this.last = now;
-          const dt = clamp(dtMs / 16.666, 0.5, 2.0); this.time += dtMs / 1000; 
-          const { seg, p } = this.stageInfo(); const t = Math.min(this.time, 14.0);
-          const dominant = (seg.type === 'hold' || seg.type === 'show_text' || seg.type === 'hold_all') ? seg.formation : (p < 0.5 ? seg.from : seg.to);
-          this.drawBackground(t, dominant); 
+          const dtMs = clamp(now - this.last, 0, 60);
+          this.last = now;
+          const dt = clamp(dtMs / 16.666, 0.5, 2.0);
+          this.time += dtMs / 1000;
+
+          const { seg, p } = this.stageInfo();
+          const t = Math.min(this.time, 14.0);
+
+          const dominant = (seg.type === 'hold' || seg.type === 'show_text' || seg.type === 'hold_all')
+            ? seg.formation
+            : (p < 0.5 ? seg.from : seg.to);
+
+          this.drawBackground(t, dominant);
+
           let solarVis = 0;
           if (seg.type === 'hold' && seg.formation === 'galaxy') solarVis = 1;
           if (seg.type === 'morph') {
             if (seg.from === 'galaxy') solarVis = easeInOutCubic(1 - p);
             else if (seg.to === 'galaxy') solarVis = easeInOutCubic(p);
           }
-          this.drawPlanets(t, solarVis, seg.formation); 
+          this.drawPlanets(t, solarVis, seg.formation);
+
           let textAlpha = (seg.type === 'show_text') ? easeInOutCubic(p) : (seg.type === 'hold_all' ? 1 : 0);
-          if (textAlpha > 0) { ctx.globalCompositeOperation = 'lighter'; this.drawStaticText(t, textAlpha); }
-          ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1;
+          if (textAlpha > 0) {
+            ctx.globalCompositeOperation = 'lighter';
+            this.drawStaticText(t, textAlpha);
+          }
+
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 1;
+
           for (let i = 0; i < this.N; i++) {
             let target;
-            if (seg.type.includes('hold') || seg.type === 'show_text') target = this.formationPoint(seg.formation, i, t);
-            else {
-              const a = this.formationPoint(seg.from, i, t), b = this.formationPoint(seg.to, i, t), e = easeInOutCubic(p);
-              target = { x: lerp(a.x, b.x, e) + this.p[i].jx * (Math.sin(Math.PI * e) * 5), y: lerp(a.y, b.y, e) + this.p[i].jy * (Math.sin(Math.PI * e) * 5), h: hueLerp(a.h, b.h, e), s: lerp(a.s, b.s, e), l: lerp(a.l, b.l, e), a: lerp(a.a, b.a, e), r: lerp(a.r, b.r, e) };
+            if (seg.type.includes('hold') || seg.type === 'show_text') {
+              target = this.formationPoint(seg.formation, i, t);
+            } else {
+              const a = this.formationPoint(seg.from, i, t);
+              const b = this.formationPoint(seg.to, i, t);
+              const e = easeInOutCubic(p);
+              target = {
+                x: lerp(a.x, b.x, e) + this.p[i].jx * (Math.sin(Math.PI * e) * 5),
+                y: lerp(a.y, b.y, e) + this.p[i].jy * (Math.sin(Math.PI * e) * 5),
+                h: hueLerp(a.h, b.h, e),
+                s: lerp(a.s, b.s, e),
+                l: lerp(a.l, b.l, e),
+                a: lerp(a.a, b.a, e),
+                r: lerp(a.r, b.r, e)
+              };
             }
-            this.p[i].step(target, dt); this.p[i].draw(t);
+            this.p[i].step(target, dt);
+            this.p[i].draw(t);
           }
         }
 
-        restart() { this.time = 0; this.last = performance.now(); this.buildAll(); this.initTextParticles(); }
+        // ✅ Restart cả animation + audio, đảm bảo lần nào cũng như lần đầu
+        restartAll(forcePlayAudio = true) {
+          this.time = 0;
+          this.last = performance.now();
+
+          // rebuild mọi thứ để tránh state lệch
+          this.buildAll();
+          this.buildTimeline();
+          this.initTextParticles();
+
+          // reset particle list về scatter
+          this.resetParticlesToScatter();
+
+          // reset canvas state
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+
+          restartAudio(forcePlayAudio);
+        }
       }
 
       function resize() {
-        DPR = Math.min(2, window.devicePixelRatio || 1); W = window.innerWidth; H = window.innerHeight;
-        canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR);
+        DPR = Math.min(2, window.devicePixelRatio || 1);
+        W = window.innerWidth;
+        H = window.innerHeight;
+
+        canvas.width = Math.floor(W * DPR);
+        canvas.height = Math.floor(H * DPR);
         ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-        if (system) { system.cx = W / 2; system.cy = H / 2; system.dim = Math.min(W, H); system.restart(); }
-        else { system = new System(); window.experienceSystem = system; }
+
+        if (system) {
+          system.cx = W / 2;
+          system.cy = H / 2;
+          system.dim = Math.min(W, H);
+          system.restartAll(false); // resize không ép play nhạc
+        } else {
+          system = new System();
+          window.experienceSystem = system;
+
+          // load lần đầu: chỉ fill nền tối
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#020308';
+          ctx.fillRect(0, 0, W, H);
+        }
       }
 
-      function raf(now) { if (system) system.step(now); requestAnimationFrame(raf); }
-      window.addEventListener('resize', () => { resize(); }, { passive: true });
-      window.addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); if (system) system.restart(); } });
-      resize(); requestAnimationFrame(raf);
+      function raf(now) {
+        if (system) system.step(now);
+        requestAnimationFrame(raf);
+      }
+
+      // Input: Space + click/touch anywhere
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          safeRestart(true);
+        }
+      });
+
+      window.addEventListener('pointerdown', () => {
+        // chạm/click bất kỳ đâu để phát lại
+        safeRestart(true);
+      }, { passive: true });
+
+      window.addEventListener('resize', () => resize(), { passive: true });
+
+      resize();
+      requestAnimationFrame(raf);
     })();
   </script>
 </body>
 </html>
-
